@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧠 스마트 암기장 Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#242836;--border:#2e3345;
+  --text:#e4e7ef;--muted:#8b92a8;--primary:#6c5ce7;--accent:#00cec9;
+  --success:#00b894;--danger:#ff6b6b;--radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter','Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,rgba(108,92,231,.15),transparent 50%),radial-gradient(circle at 70% 80%,rgba(0,206,201,.1),transparent 50%);z-index:-1}
+.container{max-width:900px;margin:0 auto;padding:30px 20px}
+
+.header{text-align:center;margin-bottom:36px}
+.header h1{font-size:2.1em;font-weight:800;background:linear-gradient(135deg,#6c5ce7,#a29bfe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header .sub{color:var(--muted);font-size:.92em;margin-top:6px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px;margin-bottom:22px;box-shadow:0 8px 32px rgba(0,0,0,.25);animation:fadeIn .4s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.tip{display:flex;gap:10px;padding:14px;background:rgba(108,92,231,.1);border:1px solid rgba(108,92,231,.2);border-radius:10px;margin-bottom:16px;font-size:.88em;color:var(--muted);line-height:1.6}
+.tip b{color:var(--text)}
+
+textarea{width:100%;min-height:190px;padding:16px;background:var(--surface2);border:2px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;line-height:1.8;resize:vertical;outline:none;font-family:inherit;transition:border-color .3s}
+textarea:focus{border-color:var(--primary)}
+textarea::placeholder{color:var(--muted)}
+
+.btn-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btn{flex:1;min-width:140px;padding:14px 20px;border:none;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;color:#fff;transition:all .25s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.btn:active{transform:translateY(0)}
+.btn-p{background:linear-gradient(135deg,#6c5ce7,#a29bfe)}
+.btn-a{background:linear-gradient(135deg,#00cec9,#81ecec);color:#1a1d27}
+.btn-d{background:linear-gradient(135deg,#ff6b6b,#ee5a24)}
+.btn-g{background:transparent;border:2px solid var(--border);color:var(--muted)}
+.btn-g:hover{border-color:var(--primary);color:var(--text)}
+
+/* Keyword info */
+.kw-info{display:none;padding:12px 16px;background:rgba(0,206,201,.1);border:1px solid rgba(0,206,201,.2);border-radius:10px;margin-top:14px;font-size:.88em;color:var(--accent)}
+
+/* Source file list */
+.src-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;max-height:300px;overflow-y:auto}
+.src-item{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface2);border:2px solid var(--border);border-radius:10px;cursor:pointer;transition:all .25s;font-size:.9em}
+.src-item:hover{border-color:var(--primary);transform:translateX(4px)}
+.src-item .src-icon{font-size:1.3em}
+.src-item .src-name{flex:1;font-weight:600}
+.src-item .src-size{color:var(--muted);font-size:.8em}
+.src-topics{display:flex;flex-direction:column;gap:6px;margin-top:12px;max-height:350px;overflow-y:auto}
+.src-topic{padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;font-size:.88em;line-height:1.5}
+.src-topic:hover{border-color:var(--accent);background:rgba(0,206,201,.08)}
+.src-topic .t-num{color:var(--accent);font-weight:700;margin-right:6px}
+
+/* Level Grid */
+.lv-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.lv-card{background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius);padding:22px;cursor:pointer;transition:all .3s;text-align:center}
+.lv-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.lv-card .emoji{font-size:2.2em;margin-bottom:8px}
+.lv-card .title{font-size:1.05em;font-weight:700;margin-bottom:4px}
+.lv-card .desc{font-size:.82em;color:var(--muted);line-height:1.5}
+.lv-card .badge{display:inline-block;padding:3px 10px;border-radius:16px;font-size:.72em;font-weight:700;margin-top:8px}
+.lv1:hover,.lv1.on{border-color:#00b894}.lv1 .badge{background:rgba(0,184,148,.2);color:#00b894}
+.lv2:hover,.lv2.on{border-color:#0984e3}.lv2 .badge{background:rgba(9,132,227,.2);color:#0984e3}
+.lv3:hover,.lv3.on{border-color:#e17055}.lv3 .badge{background:rgba(225,112,85,.2);color:#e17055}
+.lv4:hover,.lv4.on{border-color:#d63031}.lv4 .badge{background:rgba(214,48,49,.2);color:#d63031}
+
+/* Progress */
+.prog{margin-bottom:22px}
+.prog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:.88em;color:var(--muted)}
+.prog-head span{color:var(--accent);font-weight:700;font-size:1.15em}
+.prog-bg{height:7px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#00cec9,#6c5ce7);border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1);width:0}
+
+/* Study Text */
+.study-text{font-size:16.5px;line-height:2.4;white-space:pre-wrap;word-break:keep-all}
+
+/* Flip Blank */
+.blank{display:inline-block;cursor:pointer;vertical-align:baseline;margin:2px 3px;position:relative}
+.blank-in{display:inline-block;position:relative}
+.blank-f,.blank-b{display:inline-block;padding:4px 14px;border-radius:7px;font-weight:700;transition:all .35s cubic-bezier(.4,0,.2,1)}
+.blank-f{background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:rgba(255,255,255,.85);font-size:.82em;letter-spacing:1.5px;min-width:40px;text-align:center;box-shadow:0 2px 10px rgba(108,92,231,.4);animation:pulse 2s infinite}
+.blank-b{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#00b894,#00cec9);color:#fff;text-align:center;box-shadow:0 2px 10px rgba(0,184,148,.4);border-radius:7px;opacity:0;transform:scale(.8);pointer-events:none}
+.blank.flipped .blank-f{opacity:0;transform:scale(.8)}
+.blank.flipped .blank-b{opacity:1;transform:scale(1)}
+@keyframes pulse{0%,100%{box-shadow:0 2px 10px rgba(108,92,231,.4)}50%{box-shadow:0 2px 18px rgba(108,92,231,.6)}}
+.blank:not(.flipped):hover .blank-f{animation:none;box-shadow:0 4px 16px rgba(108,92,231,.6);transform:scale(1.05)}
+
+/* Complete Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(15,17,23,.85);backdrop-filter:blur(6px);z-index:100;justify-content:center;align-items:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px;text-align:center;max-width:400px;width:90%;animation:popIn .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.modal .big{font-size:3.5em;margin-bottom:14px}
+.modal .t{font-size:1.4em;font-weight:800;margin-bottom:6px}
+.modal .d{color:var(--muted);margin-bottom:22px;line-height:1.6}
+
+@media(max-width:600px){.lv-grid{grid-template-columns:1fr}.header h1{font-size:1.5em}.btn{min-width:110px;font-size:13px}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🧠 스마트 암기장 Pro</h1>
+    <p class="sub">핵심 키워드를 자동으로 찾고, 플립 카드로 암기하세요</p>
+  </div>
+
+  <!-- 1. Input -->
+  <div class="card" id="sec-input">
+    <div class="tip"><span>💡</span><div><b>사용법:</b> 직접 텍스트를 입력하거나, <b>[📂 소스 파일 불러오기]</b>로 저장된 서브노트에서 주제를 선택하세요.</div></div>
+    <textarea id="input-text" placeholder="여기에 암기할 텍스트를 붙여넣으세요..."></textarea>
+    <div class="kw-info" id="kw-info"></div>
+    <div class="btn-row">
+      <button class="btn btn-p" onclick="autoGen()">🤖 핵심 키워드 자동 생성</button>
+      <button class="btn btn-a" onclick="loadSources()">📂 소스 파일 불러오기</button>
+    </div>
+  </div>
+
+  <!-- 1-b. Source Picker -->
+  <div class="card" id="sec-source" style="display:none">
+    <h2 style="font-size:1.15em;margin-bottom:4px">📂 서브노트 파일 선택</h2>
+    <p style="color:var(--muted);font-size:.88em">sources 폴더의 파일을 선택하면 주제 목록이 표시됩니다.</p>
+    <div class="src-list" id="src-list"></div>
+    <div id="src-topics-wrap" style="display:none;margin-top:16px">
+      <h3 style="font-size:1em;margin-bottom:8px" id="src-file-title"></h3>
+      <div class="src-topics" id="src-topics"></div>
+    </div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-g" onclick="goInput()">← 직접 입력으로 돌아가기</button>
+    </div>
+  </div>
+
+  <!-- 2. Level Select -->
+  <div class="card" id="sec-level" style="display:none">
+    <h2 style="font-size:1.15em;margin-bottom:4px">🎯 난이도를 선택하세요</h2>
+    <p style="color:var(--muted);font-size:.88em" id="kw-summary"></p>
+    <div class="lv-grid">
+      <div class="lv-card lv1" onclick="startStudy(1)">
+        <div class="emoji">🌱</div><div class="title">Level 1 · 입문</div>
+        <div class="desc">핵심 키워드 25% 가림<br>처음 학습할 때 추천</div><div class="badge">EASY</div>
+      </div>
+      <div class="lv-card lv2" onclick="startStudy(2)">
+        <div class="emoji">📘</div><div class="title">Level 2 · 기본</div>
+        <div class="desc">핵심 키워드 50% 가림<br>기본 이해 확인용</div><div class="badge">NORMAL</div>
+      </div>
+      <div class="lv-card lv3" onclick="startStudy(3)">
+        <div class="emoji">🔥</div><div class="title">Level 3 · 심화</div>
+        <div class="desc">핵심 키워드 75% 가림<br>실력 테스트용</div><div class="badge">HARD</div>
+      </div>
+      <div class="lv-card lv4" onclick="startStudy(4)">
+        <div class="emoji">💀</div><div class="title">Level 4 · 극한</div>
+        <div class="desc">핵심 키워드 100% 가림<br>완벽 암기 도전!</div><div class="badge">EXTREME</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:18px">
+      <button class="btn btn-g" onclick="goInput()">← 텍스트 수정하기</button>
+    </div>
+  </div>
+
+  <!-- 3. Study -->
+  <div class="prog" id="sec-prog" style="display:none">
+    <div class="prog-head">
+      <div>진행률: <span id="p-cur">0</span> / <span id="p-tot">0</span></div>
+      <div id="lv-tag"></div>
+    </div>
+    <div class="prog-bg"><div class="prog-fill" id="p-bar"></div></div>
+  </div>
+
+  <div class="card" id="sec-study" style="display:none">
+    <div class="btn-row" style="margin-bottom:18px">
+      <button class="btn btn-a" onclick="revealAll()">👁 전체 공개</button>
+      <button class="btn btn-d" onclick="resetBlanks()">🔄 다시 가리기</button>
+      <button class="btn btn-g" onclick="goInput()">✏️ 처음으로</button>
+    </div>
+    <div class="study-text" id="study-area"></div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <div class="big">🎉</div>
+      <div class="t">암기 완료!</div>
+      <div class="d" id="modal-desc">모든 키워드를 확인했습니다.</div>
+      <div class="btn-row" style="flex-direction:column;gap:10px">
+        <button class="btn btn-d" onclick="resetBlanks();closeModal()">🔄 다시 도전</button>
+        <button class="btn btn-p" onclick="levelUp()">⬆️ 다음 레벨 도전</button>
+        <button class="btn btn-g" onclick="goInput();closeModal()">✏️ 처음으로</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let allKeywords = [];
+let activeCount = 0;
+let revealedCount = 0;
+let currentLevel = 1;
+let originalText = '';
+
+window.onload = () => {
+  const s = localStorage.getItem('smartStudyText');
+  if(s) document.getElementById('input-text').value = s;
+};
+
+/* ── Keyword Extraction ── */
+function autoGen() {
+  const text = document.getElementById('input-text').value.trim();
+  if(!text) return alert('먼저 텍스트를 입력해주세요!');
+
+  originalText = text;
+  localStorage.setItem('smartStudyText', text);
+
+  const stops = new Set(['그리고','하지만','또는','있는','이다','한다','된다','않는','않다',
+    '이','그','저','것','수','등','및','의','에','를','을','가','은','는','로','으로',
+    '이러한','통해','대한','위한','따른','관한','같은','때문','경우','있다','없다',
+    '하는','되는','하여','위해','대해','따라','에서','에게','까지','부터','라고',
+    '있다.','없다.','한다.','된다.','않다.']);
+
+  const words = text.split(/\s+/);
+  const scoreMap = {};
+  const posMap = {};
+
+  words.forEach((w, i) => {
+    const c = w.replace(/[.,!?;:()[\]{}'""·…\-–—]/g, '').trim();
+    if(c.length <= 1 || stops.has(c)) return;
+    if(!scoreMap[c]) { scoreMap[c] = 0; posMap[c] = i; }
+    scoreMap[c] += c.length;
+  });
+
+  allKeywords = Object.keys(scoreMap)
+    .map(w => ({word: w, score: scoreMap[w], pos: posMap[w]}))
+    .sort((a,b) => b.score - a.score);
+
+  if(allKeywords.length === 0) return alert('키워드를 찾을 수 없습니다. 더 긴 텍스트를 입력해주세요.');
+
+  const info = document.getElementById('kw-info');
+  info.style.display = 'block';
+  info.textContent = `✅ ${allKeywords.length}개의 핵심 키워드를 감지했습니다. 난이도를 선택하세요!`;
+
+  show('sec-input', false);
+  show('sec-level', true);
+  document.getElementById('kw-summary').textContent =
+    `감지된 키워드 ${allKeywords.length}개 — 레벨에 따라 가려지는 수가 달라집니다.`;
+}
+
+/* ── Start Study ── */
+function startStudy(level) {
+  currentLevel = level;
+  const ratios = [0, 0.25, 0.5, 0.75, 1.0];
+  const ratio = ratios[level];
+  const count = Math.max(1, Math.round(allKeywords.length * ratio));
+  const selected = new Set(allKeywords.slice(0, count).map(k => k.word));
+
+  activeCount = selected.size;
+  revealedCount = 0;
+
+  // Build HTML
+  let safe = originalText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Escape special regex chars in keywords, replace longest first
+  const sortedKws = [...selected].sort((a,b) => b.length - a.length);
+  sortedKws.forEach(kw => {
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(escaped, 'g');
+    safe = safe.replace(re, m => {
+      const dots = '●'.repeat(Math.max(2, Math.ceil(m.length * 0.7)));
+      return `<span class="blank" onclick="flipBlank(this)" data-answer="${m}"><span class="blank-in"><span class="blank-f">${dots}</span><span class="blank-b">${m}</span></span></span>`;
+    });
+  });
+
+  document.getElementById('study-area').innerHTML = safe;
+
+  // UI
+  const labels = ['','🌱 Level 1 · EASY','📘 Level 2 · NORMAL','🔥 Level 3 · HARD','💀 Level 4 · EXTREME'];
+  document.getElementById('lv-tag').textContent = labels[level];
+  document.getElementById('p-cur').textContent = '0';
+  document.getElementById('p-tot').textContent = activeCount;
+  document.getElementById('p-bar').style.width = '0%';
+
+  show('sec-level', false);
+  show('sec-prog', true);
+  show('sec-study', true);
+}
+
+/* ── Flip (toggle) ── */
+function flipBlank(el) {
+  if(el.classList.contains('flipped')) {
+    el.classList.remove('flipped');
+    revealedCount = Math.max(0, revealedCount - 1);
+    updateProgress();
+    return;
+  }
+  el.classList.add('flipped');
+  revealedCount++;
+  updateProgress();
+  if(revealedCount >= activeCount) {
+    setTimeout(() => {
+      document.getElementById('modal-desc').textContent =
+        `${activeCount}개의 키워드를 모두 확인했습니다!\n현재 레벨: Level ${currentLevel}`;
+      document.getElementById('modal').classList.add('show');
+    }, 600);
+  }
+}
+
+function revealAll() {
+  document.querySelectorAll('.blank:not(.flipped)').forEach(el => {
+    el.classList.add('flipped');
+  });
+  revealedCount = activeCount;
+  updateProgress();
+}
+
+function resetBlanks() {
+  document.querySelectorAll('.blank.flipped').forEach(el => {
+    el.classList.remove('flipped');
+  });
+  revealedCount = 0;
+  updateProgress();
+}
+
+function updateProgress() {
+  document.getElementById('p-cur').textContent = revealedCount;
+  const pct = activeCount > 0 ? (revealedCount / activeCount * 100) : 0;
+  document.getElementById('p-bar').style.width = pct + '%';
+}
+
+/* ── Navigation ── */
+function goInput() {
+  show('sec-input', true);
+  show('sec-level', false);
+  show('sec-prog', false);
+  show('sec-study', false);
+  show('sec-source', false);
+  document.getElementById('kw-info').style.display = 'none';
+}
+
+/* ── Source File Loader ── */
+let SOURCE_FILES = [];
+
+async function loadSources() {
+  show('sec-input', false);
+  show('sec-source', true);
+  document.getElementById('src-topics-wrap').style.display = 'none';
+  const list = document.getElementById('src-list');
+  
+  if(SOURCE_FILES.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);padding:12px">📡 파일 목록을 불러오는 중...</p>';
+    try {
+      const res = await fetch('sources/index.json');
+      if(!res.ok) throw new Error('index.json 없음');
+      SOURCE_FILES = await res.json();
+    } catch(e) {
+      list.innerHTML = '<p style="color:var(--danger);padding:12px">⚠️ sources/index.json을 찾을 수 없습니다.<br><small style="color:var(--muted)">로컬 서버(python -m http.server)로 실행하고, sources/index.json 파일이 있는지 확인하세요.</small></p>';
+      return;
+    }
+  }
+  
+  list.innerHTML = SOURCE_FILES.map((s,i) =>
+    `<div class="src-item" onclick="loadFile(${i})"><span class="src-icon">📄</span><span class="src-name">${s.name}</span></div>`
+  ).join('');
+}
+
+async function loadFile(idx) {
+  const f = SOURCE_FILES[idx];
+  try {
+    const res = await fetch('sources/' + encodeURIComponent(f.file));
+    if(!res.ok) throw new Error('파일 로드 실패');
+    const text = await res.text();
+    parseTopics(text, f.name);
+  } catch(e) {
+    alert('파일을 불러올 수 없습니다: ' + e.message);
+  }
+}
+
+function parseTopics(md, fileName) {
+  document.getElementById('src-file-title').textContent = '📖 ' + fileName;
+  document.getElementById('src-topics-wrap').style.display = '';
+  // Split by ## headings (topics)
+  const sections = md.split(/^(?=## )/m).filter(s => s.trim());
+  const topics = [];
+  sections.forEach(sec => {
+    const lines = sec.split('\n');
+    const heading = lines[0].replace(/^#+\s*/, '').trim();
+    if(!heading || heading.length < 3) return;
+    const body = lines.slice(1).join('\n').trim();
+    if(body.length > 20) topics.push({heading, body});
+  });
+  const wrap = document.getElementById('src-topics');
+  if(topics.length === 0) {
+    wrap.innerHTML = '<p style="color:var(--muted)">주제를 파싱할 수 없습니다.</p>';
+    return;
+  }
+  wrap.innerHTML = topics.map((t,i) =>
+    `<div class="src-topic" onclick="selectTopic(${i})"><span class="t-num">${i+1}.</span>${t.heading}</div>`
+  ).join('');
+  window._parsedTopics = topics;
+}
+
+function selectTopic(idx) {
+  const topic = window._parsedTopics[idx];
+  // Clean markdown formatting for study
+  let clean = topic.body
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/^[-*]\s+/gm, '· ')
+    .replace(/^>\s*/gm, '')
+    .replace(/^#{1,4}\s*/gm, '')
+    .trim();
+  document.getElementById('input-text').value = clean;
+  show('sec-source', false);
+  show('sec-input', true);
+  autoGen();
+}
+
+function levelUp() {
+  closeModal();
+  if(currentLevel < 4) {
+    startStudy(currentLevel + 1);
+  } else {
+    alert('🏆 최고 레벨을 클리어했습니다! 완벽 암기 달성!');
+    resetBlanks();
+  }
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+function show(id, v) { document.getElementById(id).style.display = v ? '' : 'none'; }
+</script>
+</body>
+</html>
