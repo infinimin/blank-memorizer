@@ -89,6 +89,19 @@ textarea::placeholder{color:var(--muted)}
 @keyframes pulse{0%,100%{box-shadow:0 2px 10px rgba(108,92,231,.4)}50%{box-shadow:0 2px 18px rgba(108,92,231,.6)}}
 .blank:not(.flipped):hover .blank-f{animation:none;box-shadow:0 4px 16px rgba(108,92,231,.6);transform:scale(1.05)}
 
+/* Mode Toggle */
+.mode-toggle { display:flex; background:var(--surface2); border-radius:10px; overflow:hidden; margin-bottom:20px; border:1px solid var(--border); }
+.mode-toggle label { flex:1; text-align:center; padding:12px; cursor:pointer; color:var(--muted); font-weight:700; transition:all 0.2s; border-right:1px solid var(--border); }
+.mode-toggle label:last-child { border-right:none; }
+.mode-toggle input[type="radio"] { display:none; }
+.mode-toggle input[type="radio"]:checked + label { background:var(--primary); color:#fff; }
+
+/* Typing Blank */
+.blank-input { display:inline-block; background:var(--surface2); border:2px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:0.9em; font-weight:700; padding:4px 8px; margin:2px 3px; text-align:center; outline:none; transition:all 0.25s; }
+.blank-input:focus { border-color:var(--accent); box-shadow:0 0 8px rgba(0,206,201,0.3); }
+.blank-input.correct { background:rgba(0,184,148,0.15); border-color:var(--success); color:var(--success); }
+.blank-input.hint { border-color:var(--danger); color:var(--danger); }
+
 /* Complete Modal */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(15,17,23,.85);backdrop-filter:blur(6px);z-index:100;justify-content:center;align-items:center}
 .modal-bg.show{display:flex}
@@ -122,7 +135,15 @@ textarea::placeholder{color:var(--muted)}
   <!-- 1-b. Source Picker -->
   <div class="card" id="sec-source" style="display:none">
     <h2 style="font-size:1.15em;margin-bottom:4px">📂 서브노트 파일 선택</h2>
-    <p style="color:var(--muted);font-size:.88em">sources 폴더의 파일을 선택하면 주제 목록이 표시됩니다.</p>
+    <p style="color:var(--muted);font-size:.88em">로컬에 있는 마크다운(.md) 파일이나 폴더를 선택하세요.</p>
+    
+    <div class="btn-row" style="margin-top:12px; margin-bottom:12px">
+      <input type="file" id="file-input" multiple accept=".md" style="display:none" onchange="handleFiles(event)">
+      <input type="file" id="folder-input" webkitdirectory directory style="display:none" onchange="handleFiles(event)">
+      <button class="btn btn-p" onclick="document.getElementById('file-input').click()">📄 파일 선택</button>
+      <button class="btn btn-a" onclick="document.getElementById('folder-input').click()">📁 폴더 선택</button>
+    </div>
+
     <div class="src-list" id="src-list"></div>
     <div id="src-topics-wrap" style="display:none;margin-top:16px">
       <h3 style="font-size:1em;margin-bottom:8px" id="src-file-title"></h3>
@@ -135,7 +156,15 @@ textarea::placeholder{color:var(--muted)}
 
   <!-- 2. Level Select -->
   <div class="card" id="sec-level" style="display:none">
-    <h2 style="font-size:1.15em;margin-bottom:4px">🎯 난이도를 선택하세요</h2>
+    <h2 style="font-size:1.15em;margin-bottom:14px">🎯 학습 모드와 난이도를 선택하세요</h2>
+    
+    <div class="mode-toggle">
+      <input type="radio" name="studyMode" id="mode-flip" value="flip" checked>
+      <label for="mode-flip">🎴 플립 (클릭)</label>
+      <input type="radio" name="studyMode" id="mode-type" value="type">
+      <label for="mode-type">⌨️ 타이핑 (입력)</label>
+    </div>
+
     <p style="color:var(--muted);font-size:.88em" id="kw-summary"></p>
     <div class="lv-grid">
       <div class="lv-card lv1" onclick="startStudy(1)">
@@ -199,6 +228,7 @@ let activeCount = 0;
 let revealedCount = 0;
 let currentLevel = 1;
 let originalText = '';
+let studyMode = 'flip';
 
 window.onload = () => {
   const s = localStorage.getItem('smartStudyText');
@@ -249,33 +279,44 @@ function autoGen() {
 /* ── Start Study ── */
 function startStudy(level) {
   currentLevel = level;
+  studyMode = document.querySelector('input[name="studyMode"]:checked').value;
+  
   const ratios = [0, 0.25, 0.5, 0.75, 1.0];
   const ratio = ratios[level];
   const count = Math.max(1, Math.round(allKeywords.length * ratio));
   const selected = new Set(allKeywords.slice(0, count).map(k => k.word));
-
-  activeCount = selected.size;
-  revealedCount = 0;
 
   // Build HTML
   let safe = originalText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   // Escape special regex chars in keywords, replace longest first
   const sortedKws = [...selected].sort((a,b) => b.length - a.length);
-  sortedKws.forEach(kw => {
-    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(escaped, 'g');
+  const escapedKws = sortedKws.map(kw => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  
+  let matchCount = 0;
+  if (escapedKws.length > 0) {
+    const re = new RegExp(`(${escapedKws.join('|')})`, 'g');
     safe = safe.replace(re, m => {
-      const dots = '●'.repeat(Math.max(2, Math.ceil(m.length * 0.7)));
-      return `<span class="blank" onclick="flipBlank(this)" data-answer="${m}"><span class="blank-in"><span class="blank-f">${dots}</span><span class="blank-b">${m}</span></span></span>`;
+      matchCount++;
+      if (studyMode === 'type') {
+        const w = Math.max(60, m.length * 20 + 30);
+        return `<input type="text" class="blank-input" data-answer="${m}" style="width:${w}px" oninput="checkTyping(this)" onclick="toggleHint(this)" onkeydown="handleKeyDown(event, this)" placeholder="?">`;
+      } else {
+        const dots = '●'.repeat(Math.max(2, Math.ceil(m.length * 0.7)));
+        return `<span class="blank" onclick="flipBlank(this)"><span class="blank-in"><span class="blank-f">${dots}</span><span class="blank-b">${m}</span></span></span>`;
+      }
     });
-  });
+  }
+
+  activeCount = matchCount;
+  revealedCount = 0;
 
   document.getElementById('study-area').innerHTML = safe;
 
   // UI
+  const modeLabel = studyMode === 'type' ? '⌨️ 타자 모드' : '🎴 플립 모드';
   const labels = ['','🌱 Level 1 · EASY','📘 Level 2 · NORMAL','🔥 Level 3 · HARD','💀 Level 4 · EXTREME'];
-  document.getElementById('lv-tag').textContent = labels[level];
+  document.getElementById('lv-tag').textContent = `${modeLabel} | ${labels[level]}`;
   document.getElementById('p-cur').textContent = '0';
   document.getElementById('p-tot').textContent = activeCount;
   document.getElementById('p-bar').style.width = '0%';
@@ -283,6 +324,93 @@ function startStudy(level) {
   show('sec-level', false);
   show('sec-prog', true);
   show('sec-study', true);
+  
+  if (studyMode === 'type') {
+    setTimeout(() => {
+      const first = document.querySelector('.blank-input');
+      if (first) first.focus();
+    }, 100);
+  }
+}
+
+/* ── Typing Mode Logic ── */
+function checkTyping(el) {
+  const answer = el.getAttribute('data-answer');
+  const user = el.value;
+  const isCorrect = (user.replace(/\s+/g, '') === answer.replace(/\s+/g, ''));
+  
+  if (el.classList.contains('correct')) {
+    if (!isCorrect) {
+      el.classList.remove('correct');
+      revealedCount = Math.max(0, revealedCount - 1);
+      updateProgress();
+    }
+    return;
+  }
+  
+  if (isCorrect) {
+    el.value = answer;
+    el.classList.add('correct');
+    el.classList.remove('hint');
+    
+    revealedCount++;
+    updateProgress();
+    
+    const allInputs = Array.from(document.querySelectorAll('.blank-input'));
+    const currentIndex = allInputs.indexOf(el);
+    for (let i = currentIndex + 1; i < allInputs.length; i++) {
+      if (!allInputs[i].classList.contains('correct')) {
+        allInputs[i].focus();
+        return;
+      }
+    }
+    for (let i = 0; i < currentIndex; i++) {
+      if (!allInputs[i].classList.contains('correct')) {
+        allInputs[i].focus();
+        return;
+      }
+    }
+  } else {
+    if (el.classList.contains('hint')) el.classList.remove('hint');
+  }
+}
+
+function toggleHint(el) {
+  if (el.classList.contains('correct')) return;
+  const answer = el.getAttribute('data-answer');
+  
+  if (!el.classList.contains('hint')) {
+    el.setAttribute('data-user-val', el.value);
+    el.value = answer;
+    el.classList.add('hint');
+    el.readOnly = true;
+  } else {
+    el.value = el.getAttribute('data-user-val') || '';
+    el.classList.remove('hint');
+    el.readOnly = false;
+    el.focus();
+  }
+}
+
+function handleKeyDown(e, el) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const inputs = Array.from(document.querySelectorAll('.blank-input'));
+    const currentIndex = inputs.indexOf(el);
+    
+    for (let i = currentIndex + 1; i < inputs.length; i++) {
+      if (!inputs[i].classList.contains('correct')) {
+        inputs[i].focus();
+        return;
+      }
+    }
+    for (let i = 0; i < currentIndex; i++) {
+      if (!inputs[i].classList.contains('correct')) {
+        inputs[i].focus();
+        return;
+      }
+    }
+  }
 }
 
 /* ── Flip (toggle) ── */
@@ -296,27 +424,39 @@ function flipBlank(el) {
   el.classList.add('flipped');
   revealedCount++;
   updateProgress();
-  if(revealedCount >= activeCount) {
-    setTimeout(() => {
-      document.getElementById('modal-desc').textContent =
-        `${activeCount}개의 키워드를 모두 확인했습니다!\n현재 레벨: Level ${currentLevel}`;
-      document.getElementById('modal').classList.add('show');
-    }, 600);
-  }
+  // Modal popup removed per user request
 }
 
 function revealAll() {
-  document.querySelectorAll('.blank:not(.flipped)').forEach(el => {
-    el.classList.add('flipped');
-  });
+  if (studyMode === 'type') {
+    document.querySelectorAll('.blank-input:not(.correct)').forEach(el => {
+      el.value = el.getAttribute('data-answer');
+      el.classList.add('correct');
+      el.classList.remove('hint');
+    });
+  } else {
+    document.querySelectorAll('.blank:not(.flipped)').forEach(el => {
+      el.classList.add('flipped');
+    });
+  }
   revealedCount = activeCount;
   updateProgress();
 }
 
 function resetBlanks() {
-  document.querySelectorAll('.blank.flipped').forEach(el => {
-    el.classList.remove('flipped');
-  });
+  if (studyMode === 'type') {
+    document.querySelectorAll('.blank-input').forEach(el => {
+      el.value = '';
+      el.classList.remove('correct', 'hint');
+      el.readOnly = false;
+    });
+    const first = document.querySelector('.blank-input');
+    if(first) first.focus();
+  } else {
+    document.querySelectorAll('.blank.flipped').forEach(el => {
+      el.classList.remove('flipped');
+    });
+  }
   revealedCount = 0;
   updateProgress();
 }
@@ -338,41 +478,41 @@ function goInput() {
 }
 
 /* ── Source File Loader ── */
-let SOURCE_FILES = [];
+let localFiles = [];
 
-async function loadSources() {
+function loadSources() {
   show('sec-input', false);
   show('sec-source', true);
   document.getElementById('src-topics-wrap').style.display = 'none';
   const list = document.getElementById('src-list');
   
-  if(SOURCE_FILES.length === 0) {
-    list.innerHTML = '<p style="color:var(--muted);padding:12px">📡 파일 목록을 불러오는 중...</p>';
-    try {
-      const res = await fetch('sources/index.json');
-      if(!res.ok) throw new Error('index.json 없음');
-      SOURCE_FILES = await res.json();
-    } catch(e) {
-      list.innerHTML = '<p style="color:var(--danger);padding:12px">⚠️ sources/index.json을 찾을 수 없습니다.<br><small style="color:var(--muted)">로컬 서버(python -m http.server)로 실행하고, sources/index.json 파일이 있는지 확인하세요.</small></p>';
-      return;
-    }
+  if(localFiles.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);padding:12px">위 버튼을 눌러 마크다운 파일을 불러오세요.</p>';
+  }
+}
+
+function handleFiles(e) {
+  const files = Array.from(e.target.files).filter(f => f.name.endsWith('.md'));
+  if (files.length === 0) {
+    alert('마크다운(.md) 파일을 찾을 수 없습니다.');
+    return;
   }
   
-  list.innerHTML = SOURCE_FILES.map((s,i) =>
-    `<div class="src-item" onclick="loadFile(${i})"><span class="src-icon">📄</span><span class="src-name">${s.name}</span></div>`
+  localFiles = files.sort((a,b) => a.name.localeCompare(b.name));
+  
+  const list = document.getElementById('src-list');
+  list.innerHTML = localFiles.map((f,i) =>
+    `<div class="src-item" onclick="loadLocalFile(${i})"><span class="src-icon">📄</span><span class="src-name">${f.name}</span></div>`
   ).join('');
 }
 
-async function loadFile(idx) {
-  const f = SOURCE_FILES[idx];
-  try {
-    const res = await fetch('sources/' + encodeURIComponent(f.file));
-    if(!res.ok) throw new Error('파일 로드 실패');
-    const text = await res.text();
-    parseTopics(text, f.name);
-  } catch(e) {
-    alert('파일을 불러올 수 없습니다: ' + e.message);
-  }
+function loadLocalFile(idx) {
+  const file = localFiles[idx];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    parseTopics(e.target.result, file.name);
+  };
+  reader.readAsText(file);
 }
 
 function parseTopics(md, fileName) {
@@ -386,8 +526,14 @@ function parseTopics(md, fileName) {
     const heading = lines[0].replace(/^#+\s*/, '').trim();
     if(!heading || heading.length < 3) return;
     const body = lines.slice(1).join('\n').trim();
-    if(body.length > 20) topics.push({heading, body});
+    if(body.length > 10) topics.push({heading, body});
   });
+  
+  if (topics.length === 0) {
+    let cleanName = fileName.replace(/\.md$/i, '');
+    topics.push({heading: cleanName, body: md.trim()});
+  }
+
   const wrap = document.getElementById('src-topics');
   if(topics.length === 0) {
     wrap.innerHTML = '<p style="color:var(--muted)">주제를 파싱할 수 없습니다.</p>';
